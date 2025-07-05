@@ -44,7 +44,7 @@ export const useContract = () => {
     });
   };
 
-  const startBattle = async (opponent: `0x${string}`) => {
+  const startBattle = async (opponent: `0x${string}`, betAmount: bigint) => {
     if (!address) throw new Error('Wallet not connected');
 
     writeContract({
@@ -52,6 +52,7 @@ export const useContract = () => {
       abi: CONTRACT_ABI,
       functionName: 'startBattle',
       args: [opponent],
+      value: betAmount,
     });
   };
 

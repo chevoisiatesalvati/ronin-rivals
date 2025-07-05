@@ -21,3 +21,8 @@
 
 # Next.js
 .next
+
+.env
+.env.local
+.env.development
+.env.production

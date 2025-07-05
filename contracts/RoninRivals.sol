@@ -264,4 +264,9 @@ contract RoninRivals {
         require(balance > 0, "No funds to withdraw");
         payable(owner).transfer(balance);
     }
+
+    /// @notice Allows the contract to receive ETH
+    receive() external payable {
+        // Contract can receive ETH for battle funding
+    }
 }

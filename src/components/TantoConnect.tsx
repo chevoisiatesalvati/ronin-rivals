@@ -4,11 +4,14 @@ import React, { useState, useEffect } from 'react';
 import { TantoConnectButton } from '@sky-mavis/tanto-widget';
 import { useAccount, useBalance, useDisconnect } from 'wagmi';
 import toast from 'react-hot-toast';
+import Link from 'next/link';
+import { useContractRead } from '@/lib/contract';
 
 export default function TantoConnect() {
   const { address, isConnected } = useAccount();
   const { data: balance } = useBalance({ address });
   const { disconnect } = useDisconnect();
+  const { owner } = useContractRead();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -52,24 +55,39 @@ export default function TantoConnect() {
     );
   }
 
+  // Check if current user is the contract owner
+  const isOwner = owner && address && owner.toLowerCase() === address.toLowerCase();
+  console.log('Owner:', owner);
+  console.log('Address:', address);
+
   return (
     <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 mb-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-white">⚔️ Ronin Rivals ⚔️</h1>
-        <div className="text-right">
-          <p className="text-white/80 text-sm">
-            Connected: {address?.slice(0, 6)}...{address?.slice(-4)}
-          </p>
-          <p className="text-white/80 text-sm">
-            Balance: {balance ? (Number(balance.value) / 1e18).toFixed(4) : '0'}{' '}
-            RON
-          </p>
-          <button
-            onClick={handleDisconnect}
-            className="text-red-300 hover:text-red-100 text-sm"
-          >
-            Disconnect
-          </button>
+        <div className="flex items-center space-x-4">
+          {isOwner && (
+            <Link
+              href="/admin"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors"
+            >
+              Admin
+            </Link>
+          )}
+          <div className="text-right">
+            <p className="text-white/80 text-sm">
+              Connected: {address?.slice(0, 6)}...{address?.slice(-4)}
+            </p>
+            <p className="text-white/80 text-sm">
+              Balance: {balance ? (Number(balance.value) / 1e18).toFixed(4) : '0'}{' '}
+              RON
+            </p>
+            <button
+              onClick={handleDisconnect}
+              className="text-red-300 hover:text-red-100 text-sm"
+            >
+              Disconnect
+            </button>
+          </div>
         </div>
       </div>
     </div>

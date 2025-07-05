@@ -61,6 +61,7 @@ contract RoninRivals {
     event BattleTurn(uint256 indexed battleId, address player, uint256 damage, uint256 remainingHealth);
     event BattleEnded(uint256 indexed battleId, address winner, address loser, uint256 reward);
     event SkillUpgraded(address indexed player, string stat, uint256 newValue);
+    event ContractFunded(address indexed funder, uint256 amount);
 
     /// @notice Sets the contract deployer as the owner
     constructor() payable {
@@ -91,9 +92,9 @@ contract RoninRivals {
             experience: 0,
             skillPoints: 0,
             strength: 10,
-            defense: 5,
-            speed: 8,
-            health: 100,
+            defense: 10,
+            speed: 10,
+            health: 20,
             battlesWon: 0,
             battlesLost: 0,
             exists: true
@@ -132,7 +133,6 @@ contract RoninRivals {
         require(_opponent != msg.sender, "Cannot battle yourself");
         require(samurais[_opponent].exists, "Opponent must have a Samurai");
         require(msg.value >= MINIMUM_BET && msg.value <= MAXIMUM_BET, "Invalid bet amount");
-        require(address(this).balance >= msg.value * 2, "Contract needs more funds");
         
         uint256 battleId = battleIdCounter++;
         
@@ -220,12 +220,21 @@ contract RoninRivals {
         awardExperience(winner, 50);
         awardExperience(loser, 10);
         
-        // Transfer winnings
-        payable(winner).transfer(battle.bet * 2);
+        // Calculate winnings and ensure contract has enough funds
+        uint256 winnings = battle.bet * 2;
+        uint256 availableFunds = address(this).balance;
+        
+        if (availableFunds >= winnings) {
+            // Full payout
+            payable(winner).transfer(winnings);
+            emit BattleEnded(_battleId, winner, loser, winnings);
+        } else {
+            // Partial payout if contract doesn't have enough funds
+            payable(winner).transfer(availableFunds);
+            emit BattleEnded(_battleId, winner, loser, availableFunds);
+        }
         
         battle.isActive = false;
-        
-        emit BattleEnded(_battleId, winner, loser, battle.bet * 2);
     }
 
     /// @notice Awards experience points and handles level ups
@@ -258,11 +267,23 @@ contract RoninRivals {
         return battles[_battleId];
     }
 
+    /// @notice Gets the contract owner address
+    /// @return The owner address
+    function getOwner() public view returns (address) {
+        return owner;
+    }
+
     /// @notice Allows the owner to withdraw contract funds
     function withdraw() public onlyOwner {
         uint256 balance = address(this).balance;
         require(balance > 0, "No funds to withdraw");
         payable(owner).transfer(balance);
+    }
+
+    /// @notice Allows the owner to fund the contract for battle rewards
+    function fundContract() public payable onlyOwner {
+        require(msg.value > 0, "Must send funds to contract");
+        emit ContractFunded(msg.sender, msg.value);
     }
 
     /// @notice Allows the contract to receive ETH

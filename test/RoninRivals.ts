@@ -51,11 +51,11 @@ describe('RoninRivals', async function () {
     assert.equal(skillPointsPerLevel, 3n);
   });
 
-  it('Should start a battle successfully when contract has sufficient funds', async function () {
+  it('Should start a battle successfully regardless of contract funds', async function () {
     const roninRivals = await viem.deployContract('RoninRivals');
 
-    // Get three different accounts
-    const [deployer, player1, player2] = await viem.getWalletClients();
+    // Get two different accounts
+    const [player1, player2] = await viem.getWalletClients();
 
     // Create Samurais for both players
     await roninRivals.write.createSamurai(['Player1Samurai'], {
@@ -65,13 +65,7 @@ describe('RoninRivals', async function () {
       account: player2.account.address,
     });
 
-    // Fund the contract by sending ETH to it
-    await deployer.sendTransaction({
-      to: roninRivals.address,
-      value: 1000000000000000000n, // 1 ether
-    });
-
-    // Start a battle with minimum bet
+    // Start a battle with minimum bet (contract has no funds initially)
     const betAmount = 10000000000000000n; // 0.01 ether
     await viem.assertions.emitWithArgs(
       roninRivals.write.startBattle(
@@ -100,7 +94,7 @@ describe('RoninRivals', async function () {
     assert.equal(battle.currentTurn, checksumAddress(player1.account.address));
   });
 
-  it('Should fail to start battle with insufficient contract funds', async function () {
+  it('Should handle battle rewards correctly with insufficient contract funds', async function () {
     const roninRivals = await viem.deployContract('RoninRivals'); // No initial funding
 
     // Get two different accounts
@@ -114,18 +108,86 @@ describe('RoninRivals', async function () {
       account: player2.account.address,
     });
 
-    // Try to start a battle - should fail due to insufficient contract funds
+    // Start a battle with minimum bet
     const betAmount = 10000000000000000n; // 0.01 ether
-    try {
-      await roninRivals.write.startBattle([player2.account.address], {
-        account: player1.account.address,
-        value: betAmount,
-      });
-      assert.fail('Should have failed due to insufficient contract funds');
-    } catch (error) {
-      // Expected to fail
-      assert.ok(error);
+    await roninRivals.write.startBattle([player2.account.address], {
+      account: player1.account.address,
+      value: betAmount,
+    });
+
+    // Execute many turns until battle ends (with 20 health and ~5-6 damage per turn, need ~4-5 turns)
+    for (let i = 0; i < 10; i++) {
+      const battle = await roninRivals.read.getBattle([0n]);
+      if (!battle.isActive) break;
+      if (battle.currentTurn === checksumAddress(player1.account.address)) {
+        await roninRivals.write.executeTurn([0n], {
+          account: player1.account.address,
+        });
+      } else {
+        await roninRivals.write.executeTurn([0n], {
+          account: player2.account.address,
+        });
+      }
     }
+
+    // Battle should end and winner should receive partial reward
+    const battle = await roninRivals.read.getBattle([0n]);
+    assert.equal(battle.isActive, false);
+  });
+
+  it('Should handle complete battle flow with proper funding', async function () {
+    const roninRivals = await viem.deployContract('RoninRivals');
+
+    // Get three different accounts
+    const [deployer, player1, player2] = await viem.getWalletClients();
+
+    // Fund the contract first
+    await roninRivals.write.fundContract({
+      account: deployer.account.address,
+      value: 1000000000000000000n, // 1 ether
+    });
+
+    // Create Samurais for both players
+    await roninRivals.write.createSamurai(['Player1Samurai'], {
+      account: player1.account.address,
+    });
+    await roninRivals.write.createSamurai(['Player2Samurai'], {
+      account: player2.account.address,
+    });
+
+    // Start a battle with minimum bet
+    const betAmount = 10000000000000000n; // 0.01 ether
+    await roninRivals.write.startBattle([player2.account.address], {
+      account: player1.account.address,
+      value: betAmount,
+    });
+
+    // Execute many turns until battle ends (with 20 health and ~5-6 damage per turn, need ~4-5 turns)
+    for (let i = 0; i < 10; i++) {
+      const battle = await roninRivals.read.getBattle([0n]);
+      if (!battle.isActive) break;
+      if (battle.currentTurn === checksumAddress(player1.account.address)) {
+        await roninRivals.write.executeTurn([0n], {
+          account: player1.account.address,
+        });
+      } else {
+        await roninRivals.write.executeTurn([0n], {
+          account: player2.account.address,
+        });
+      }
+    }
+
+    // Battle should end and winner should receive full reward
+    const battle = await roninRivals.read.getBattle([0n]);
+    assert.equal(battle.isActive, false);
+
+    // Check that battle stats were updated
+    const samurai1 = await roninRivals.read.getSamurai([player1.account.address]);
+    const samurai2 = await roninRivals.read.getSamurai([player2.account.address]);
+    
+    // One should have won, one should have lost
+    assert.equal(samurai1.battlesWon + samurai2.battlesWon, 1n);
+    assert.equal(samurai1.battlesLost + samurai2.battlesLost, 1n);
   });
 
   it('Should fail to start battle with invalid bet amount', async function () {
@@ -237,5 +299,54 @@ describe('RoninRivals', async function () {
       // Expected to fail
       assert.ok(error);
     }
+  });
+
+  it('Should allow owner to fund contract', async function () {
+    const roninRivals = await viem.deployContract('RoninRivals');
+
+    // Get the deployer account (owner)
+    const [deployer] = await viem.getWalletClients();
+
+    // Fund the contract
+    const fundAmount = 1000000000000000000n; // 1 ether
+    await viem.assertions.emitWithArgs(
+      roninRivals.write.fundContract({
+        account: deployer.account.address,
+        value: fundAmount,
+      }),
+      roninRivals,
+      'ContractFunded',
+      [checksumAddress(deployer.account.address), fundAmount]
+    );
+  });
+
+  it('Should fail to fund contract if not owner', async function () {
+    const roninRivals = await viem.deployContract('RoninRivals');
+
+    // Get two different accounts
+    const [deployer, nonOwner] = await viem.getWalletClients();
+
+    // Try to fund the contract as non-owner
+    try {
+      await roninRivals.write.fundContract({
+        account: nonOwner.account.address,
+        value: 1000000000000000000n, // 1 ether
+      });
+      assert.fail('Should have failed due to not being owner');
+    } catch (error) {
+      // Expected to fail
+      assert.ok(error);
+    }
+  });
+
+  it('Should return correct owner address', async function () {
+    const roninRivals = await viem.deployContract('RoninRivals');
+
+    // Get the deployer account
+    const [deployer] = await viem.getWalletClients();
+
+    // Check owner
+    const owner = await roninRivals.read.getOwner();
+    assert.equal(owner, checksumAddress(deployer.account.address));
   });
 });

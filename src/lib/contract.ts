@@ -66,11 +66,23 @@ export const useContract = () => {
     });
   };
 
+  const fundContract = async (amount: bigint) => {
+    if (!address) throw new Error('Wallet not connected');
+
+    writeContract({
+      address: CONTRACT_ADDRESS,
+      abi: CONTRACT_ABI,
+      functionName: 'fundContract',
+      value: amount,
+    });
+  };
+
   return {
     createSamurai,
     upgradeStat,
     startBattle,
     executeTurn,
+    fundContract,
     isPending,
     isConfirming,
     isSuccess,
@@ -133,11 +145,31 @@ export const useContractRead = () => {
     },
   }) as { data: Battle | undefined };
 
+  const { data: contractBalance } = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    functionName: 'balance',
+    query: {
+      enabled: true,
+    },
+  }) as { data: bigint | undefined };
+
+  const { data: owner } = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    functionName: 'getOwner',
+    query: {
+      enabled: true,
+    },
+  }) as { data: `0x${string}` | undefined };
+
   return {
     samurai,
     battleIdCounter,
     currentBattle,
     minimumBet: minimumBet ? formatEther(minimumBet) : '0',
     maximumBet: maximumBet ? formatEther(maximumBet) : '0',
+    contractBalance: contractBalance ? formatEther(contractBalance) : '0',
+    owner,
   };
 };

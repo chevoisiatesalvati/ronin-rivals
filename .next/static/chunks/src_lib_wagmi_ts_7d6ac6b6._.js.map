@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 7, "column": 0}, "map": {"version":3,"sources":["file:///home/saul/projects/ronin-rivals/src/lib/wagmi.ts"],"sourcesContent":["'use client';\n\nimport { createConfig, http } from 'wagmi';\nimport { ronin, saigon } from 'wagmi/chains';\n\n// Create wagmi config\nexport const config = createConfig({\n  chains: [ronin, saigon],\n  transports: {\n    [ronin.id]: http(),\n    [saigon.id]: http(),\n  },\n});\n\nexport { ronin, saigon };\n"],"names":[],"mappings":";;;AAEA;AAAA;AACA;AAAA;AAHA;;;AAMO,MAAM,SAAS,CAAA,GAAA,iKAAA,CAAA,eAAY,AAAD,EAAE;IACjC,QAAQ;QAAC,iKAAA,CAAA,QAAK;QAAE,kKAAA,CAAA,SAAM;KAAC;IACvB,YAAY;QACV,CAAC,iKAAA,CAAA,QAAK,CAAC,EAAE,CAAC,EAAE,CAAA,GAAA,gKAAA,CAAA,OAAI,AAAD;QACf,CAAC,kKAAA,CAAA,SAAM,CAAC,EAAE,CAAC,EAAE,CAAA,GAAA,gKAAA,CAAA,OAAI,AAAD;IAClB;AACF","debugId":null}}]
+}

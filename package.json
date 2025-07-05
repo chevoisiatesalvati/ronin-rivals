@@ -1,0 +1,43 @@
+{
+  "name": "ronin-rivals",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy": "hardhat ignition deploy ignition/modules/RoninRivals.ts",
+    "deploy:saigon": "hardhat ignition deploy ignition/modules/RoninRivals.ts --network saigon"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@nomicfoundation/hardhat-ignition": "^3.0.0-next.21",
+    "@nomicfoundation/hardhat-toolbox-viem": "^5.0.0-next.21",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^22.16.0",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.3.5",
+    "forge-std": "github:foundry-rs/forge-std#v1.9.4",
+    "hardhat": "^3.0.0-next.21",
+    "tailwindcss": "^4",
+    "typescript": "~5.8.0",
+    "viem": "^2.31.7"
+  },
+  "dependencies": {
+    "@sky-mavis/tanto-widget": "^0.0.2",
+    "@sky-mavis/waypoint": "^4.1.5",
+    "@tanstack/react-query": "^5.81.5",
+    "dotenv": "^17.0.1",
+    "next": "15.3.5",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-hot-toast": "^2.5.2",
+    "wagmi": "^2.15.6"
+  }
+}

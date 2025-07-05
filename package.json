@@ -11,6 +11,7 @@
     "compile": "hardhat compile",
     "test": "hardhat test",
     "deploy": "npx hardhat ignition deploy ignition/modules/RoninRivals.ts",
+    "deploy:local": "npx hardhat ignition deploy ignition/modules/RoninRivals.ts --network localhost",
     "deploy:saigon": "npx hardhat ignition deploy ignition/modules/RoninRivals.ts --network saigon",
     "wipe:saigon": "npx hardhat ignition wipe chain-2021 \"RoninRivalsModule#RoninRivals\" --network saigon"
   },

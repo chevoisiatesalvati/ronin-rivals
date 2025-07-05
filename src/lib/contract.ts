@@ -24,7 +24,7 @@ export const useContract = () => {
   const createSamurai = async (name: string) => {
     if (!address) throw new Error('Wallet not connected');
 
-    writeContract({
+    return writeContract({
       address: CONTRACT_ADDRESS,
       abi: CONTRACT_ABI,
       functionName: 'createSamurai',
@@ -35,7 +35,7 @@ export const useContract = () => {
   const upgradeStat = async (stat: number) => {
     if (!address) throw new Error('Wallet not connected');
 
-    writeContract({
+    return writeContract({
       address: CONTRACT_ADDRESS,
       abi: CONTRACT_ABI,
       functionName: 'upgradeStat',
@@ -43,22 +43,27 @@ export const useContract = () => {
     });
   };
 
-  const startBattle = async (opponent: `0x${string}`, betAmount: bigint) => {
+  const startBattle = (opponent: `0x${string}`, betAmount: bigint) => {
     if (!address) throw new Error('Wallet not connected');
 
-    writeContract({
-      address: CONTRACT_ADDRESS,
-      abi: CONTRACT_ABI,
-      functionName: 'startBattle',
-      args: [opponent],
-      value: betAmount,
-    });
+    try {
+      const result = writeContract({
+        address: CONTRACT_ADDRESS,
+        abi: CONTRACT_ABI,
+        functionName: 'startBattle',
+        args: [opponent],
+        value: betAmount,
+      });
+      return result;
+    } catch (error) {
+      throw error;
+    }
   };
 
   const executeTurn = async (battleId: bigint) => {
     if (!address) throw new Error('Wallet not connected');
 
-    writeContract({
+    return writeContract({
       address: CONTRACT_ADDRESS,
       abi: CONTRACT_ABI,
       functionName: 'executeTurn',
@@ -69,7 +74,7 @@ export const useContract = () => {
   const fundContract = async (amount: bigint) => {
     if (!address) throw new Error('Wallet not connected');
 
-    writeContract({
+    return writeContract({
       address: CONTRACT_ADDRESS,
       abi: CONTRACT_ABI,
       functionName: 'fundContract',
@@ -104,6 +109,7 @@ export const useContractRead = () => {
       enabled: !!address,
     },
   }) as { data: Samurai | undefined };
+
 
   const { data: battleIdCounter } = useReadContract({
     address: CONTRACT_ADDRESS,

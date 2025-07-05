@@ -57,8 +57,6 @@ export default function TantoConnect() {
 
   // Check if current user is the contract owner
   const isOwner = owner && address && owner.toLowerCase() === address.toLowerCase();
-  console.log('Owner:', owner);
-  console.log('Address:', address);
 
   return (
     <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 mb-6">

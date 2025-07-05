@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.23;
+pragma solidity ^0.8.7;
 
 /// @title Ronin Rivals - Samurai Battle Game
 /// @notice A turn-based battle game where Samurai characters fight and improve their skills

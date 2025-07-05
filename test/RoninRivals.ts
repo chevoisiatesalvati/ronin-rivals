@@ -51,7 +51,7 @@ describe('RoninRivals', async function () {
     assert.equal(skillPointsPerLevel, 3n);
   });
 
-  it('Should start a battle successfully regardless of contract funds', async function () {
+  it('Should start a battle', async function () {
     const roninRivals = await viem.deployContract('RoninRivals');
 
     // Get two different accounts

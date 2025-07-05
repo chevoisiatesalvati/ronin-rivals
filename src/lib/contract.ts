@@ -11,8 +11,7 @@ import { CONTRACT_ADDRESS } from './config';
 // Import the generated ABI from Hardhat compilation
 import RoninRivalsArtifact from '../../artifacts/contracts/RoninRivals.sol/RoninRivals.json';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const CONTRACT_ABI = RoninRivalsArtifact.abi as any;
+const CONTRACT_ABI = RoninRivalsArtifact.abi;
 
 // Hook for contract interactions
 export const useContract = () => {

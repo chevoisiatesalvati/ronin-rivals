@@ -10,8 +10,9 @@
     "lint": "next lint",
     "compile": "hardhat compile",
     "test": "hardhat test",
-    "deploy": "hardhat ignition deploy ignition/modules/RoninRivals.ts",
-    "deploy:saigon": "hardhat ignition deploy ignition/modules/RoninRivals.ts --network saigon"
+    "deploy": "npx hardhat ignition deploy ignition/modules/RoninRivals.ts",
+    "deploy:saigon": "npx hardhat ignition deploy ignition/modules/RoninRivals.ts --network saigon",
+    "wipe:saigon": "npx hardhat ignition wipe chain-2021 \"RoninRivalsModule#RoninRivals\" --network saigon"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

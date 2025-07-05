@@ -1,6 +1,6 @@
 # Ronin Rivals
 
-A turn-based Samurai battle game built with Next.js, Hardhat 3, and the Ronin Waypoint SDK.
+A turn-based Samurai battle game built with Next.js, Hardhat 3, and the Ronin Tanto Widget.
 
 ## Project Structure
 
@@ -11,24 +11,26 @@ src/
 ├── app/
 │   └── page.tsx                 # Main page component
 ├── components/
-│   ├── WalletConnect.tsx        # Wallet connection and header
+│   ├── TantoConnect.tsx         # Wallet connection using Tanto Widget
 │   ├── SamuraiCard.tsx          # Samurai character management
 │   ├── BattleArena.tsx          # Battle system interface
-│   └── MessageDisplay.tsx       # Reusable message component
+│   └── ClientProviders.tsx      # Wagmi and Tanto providers
 ├── lib/
-│   ├── waypoint.ts              # Ronin Waypoint integration
-│   └── contract.ts              # Smart contract interactions
+│   ├── config.ts                # Contract and network configuration
+│   ├── contract.ts              # Smart contract interactions
+│   ├── wagmi.ts                 # Wagmi configuration
+│   └── waypoint.ts              # Ronin Waypoint integration (legacy)
 └── types/
     └── game.ts                  # Shared TypeScript interfaces
 ```
 
 ## Components Overview
 
-### WalletConnect.tsx
+### TantoConnect.tsx
 
-- Handles wallet connection/disconnection
+- Handles wallet connection/disconnection using Tanto Widget
 - Displays connected address and balance
-- Shows connection status and messages
+- Shows connection status with toast notifications
 - Renders the main header when connected
 
 ### SamuraiCard.tsx
@@ -37,6 +39,7 @@ src/
 - Displays character stats and information
 - Handles stat upgrades using skill points
 - Shows battle history (wins/losses)
+- Uses toast notifications for user feedback
 
 ### BattleArena.tsx
 
@@ -44,20 +47,23 @@ src/
 - Manages active battle state
 - Handles turn execution
 - Displays battle progress and health
+- Uses toast notifications for user feedback
 
-### MessageDisplay.tsx
+### ClientProviders.tsx
 
-- Reusable component for displaying user messages
-- Handles success/error notifications
-- Consistent styling across the app
+- Provides Wagmi, React Query, and Tanto providers
+- Includes toast notifications with react-hot-toast
+- Handles client-side rendering to avoid hydration issues
 
 ## Key Features
 
 - **Modular Architecture**: Each component has a single responsibility
 - **Type Safety**: Shared TypeScript interfaces in `types/game.ts`
-- **State Management**: Props-based communication between components
+- **Modern Wallet Integration**: Uses Tanto Widget for seamless wallet connection
+- **Toast Notifications**: User-friendly feedback with react-hot-toast
 - **Error Handling**: Consistent error handling across all components
 - **Responsive Design**: Mobile-friendly layout with Tailwind CSS
+- **Hardhat 3**: Latest Hardhat version with Ignition deployment system
 
 ## Getting Started
 
@@ -67,42 +73,65 @@ src/
    npm install
    ```
 
-2. Deploy the smart contract:
+2. Set up your private key for deployment:
 
    ```bash
-   npx hardhat ignition deploy ignition/modules/RoninRivals.ts
+   npx hardhat keystore set SAIGON_PRIVATE_KEY
    ```
 
-3. Update the contract address in `src/app/page.tsx`
+3. Deploy the smart contract to Saigon testnet:
 
-4. Start the development server:
+   ```bash
+   npx hardhat ignition deploy ignition/modules/RoninRivals.ts --network saigon
+   ```
+
+4. Update the contract address in `src/lib/config.ts` with the deployed address
+
+5. Start the development server:
    ```bash
    npm run dev
    ```
-
-## Component Communication
-
-The main page (`page.tsx`) acts as a coordinator:
-
-- Manages global state (connected address, messages)
-- Passes props to child components
-- Handles callbacks from child components
-
-Each component is self-contained and communicates through props and callbacks, making the codebase more maintainable and testable.
 
 ## Smart Contract Integration
 
 The `lib/contract.ts` file provides a clean interface for all smart contract interactions:
 
-- Read operations using viem's public client
-- Write operations using Ronin Waypoint provider
+- Uses Wagmi hooks for contract interactions
+- Read operations using `useReadContract`
+- Write operations using `useWriteContract`
 - Proper error handling and type safety
 
-## Ronin Waypoint Integration
+## Wallet Integration
 
-The `lib/waypoint.ts` file handles:
+The project uses the Ronin Tanto Widget for wallet connection:
 
-- Wallet connection via Ronin Waypoint
-- Transaction signing and sending
-- Balance queries
-- Connection state management
+- Seamless integration with Ronin wallets
+- Automatic network detection and switching
+- Built-in transaction signing and sending
+- Balance queries and connection state management
+
+## Toast Notifications
+
+The app uses `react-hot-toast` for user feedback:
+
+- Success notifications for successful transactions
+- Error notifications for failed operations
+- Loading states for pending transactions
+- Consistent styling across the application
+
+## Configuration
+
+The `lib/config.ts` file contains:
+
+- Contract address configuration
+- Network settings
+- Other app-wide constants
+
+## Deployment
+
+The project uses Hardhat 3 with Ignition for deployment:
+
+- Declarative deployment system
+- Automatic transaction management
+- Support for multiple networks
+- Secure private key management with keystore

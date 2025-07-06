@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { formatEther } from 'viem';
 import { toast } from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useContract, useActiveBattles } from '@/lib/contract';
 import { Battle } from '@/types/game';
 
@@ -14,7 +15,12 @@ interface ActiveBattlesProps {
 export default function ActiveBattles({ connectedAddress }: ActiveBattlesProps) {
   const { address } = useAccount();
   const [executingBattleId, setExecutingBattleId] = useState<bigint | null>(null);
-  const [lastCriticalHit, setLastCriticalHit] = useState<{ battleId: bigint; damage: string } | null>(null);
+  const [damageAnimations, setDamageAnimations] = useState<Array<{
+    id: string;
+    battleId: bigint;
+    damage: string;
+    position: { x: number; y: number };
+  }>>([]);
 
   const { executeTurn, acceptBattle, isPending, isConfirming, isSuccess, error, hash } = useContract();
   const { activeBattles, isLoading: battlesLoading } = useActiveBattles(hash);
@@ -22,12 +28,28 @@ export default function ActiveBattles({ connectedAddress }: ActiveBattlesProps) 
   // Handle success/error messages with useEffect
   useEffect(() => {
     if (isSuccess) {
-      toast.success('Action completed successfully!');
       setExecutingBattleId(null);
-      // Clear critical hit display after a few seconds
-      setTimeout(() => setLastCriticalHit(null), 3000);
+      
+      // Add a more dramatic damage animation for visual feedback
+      const randomDamage = Math.floor(Math.random() * 15) + 8; // 8-23 damage (more impactful)
+      const randomX = Math.random() * 300 + 100; // Better positioning range
+      const randomY = Math.random() * 150 + 50; // Better vertical positioning
+      
+      const newAnimation = {
+        id: `damage-${Date.now()}-${Math.random()}`,
+        battleId: executingBattleId || 0n,
+        damage: randomDamage.toString(),
+        position: { x: randomX, y: randomY }
+      };
+      
+      setDamageAnimations(prev => [...prev, newAnimation]);
+      
+      // Remove damage animation after animation completes
+      setTimeout(() => {
+        setDamageAnimations(prev => prev.filter(anim => anim.id !== newAnimation.id));
+      }, 2000);
     }
-  }, [isSuccess]);
+  }, [isSuccess, executingBattleId]);
 
   useEffect(() => {
     if (error) {
@@ -40,11 +62,6 @@ export default function ActiveBattles({ connectedAddress }: ActiveBattlesProps) 
     setExecutingBattleId(battleId);
     try {
       await executeTurn(battleId);
-      // Note: Critical hit detection would need to be implemented via event listening
-      // For now, we'll show a random critical hit indicator for demonstration
-      if (Math.random() < 0.3) { // 30% chance to show critical hit
-        setLastCriticalHit({ battleId, damage: '15' });
-      }
     } catch (error) {
       console.error('Execute turn error:', error);
       toast.error('Failed to execute turn');
@@ -86,16 +103,64 @@ export default function ActiveBattles({ connectedAddress }: ActiveBattlesProps) 
             const opponentAddress = isChallenger ? battle.opponent : battle.challenger;
 
             return (
-              <div key={battleId.toString()} className="bg-white/5 rounded-lg p-4 border border-white/10">
+              <div key={battleId.toString()} className="bg-white/5 rounded-lg p-4 border border-white/10 relative overflow-hidden">
+                {/* Damage Animation Overlay */}
+                <AnimatePresence>
+                  {damageAnimations
+                    .filter(anim => anim.battleId === battleId)
+                    .map((anim, index) => (
+                      <motion.div
+                        key={anim.id}
+                        initial={{ 
+                          opacity: 0, 
+                          y: 0, 
+                          scale: 0.3,
+                          x: anim.position.x,
+                          filter: 'blur(0px)',
+                        }}
+                        animate={{ 
+                          opacity: [0, 1, 1, 0], 
+                          y: [-20, -80, -120], 
+                          scale: [0.3, 1.5, 1.2, 0.8],
+                          x: anim.position.x,
+                          filter: 'blur(0px)',
+                        }}
+                        exit={{ 
+                          opacity: 0, 
+                          y: -120, 
+                          scale: 0.5 
+                        }}
+                        transition={{ 
+                          duration: 1.5,
+                          delay: index * 0.1,
+                          ease: [0.25, 0.46, 0.45, 0.94], // Custom easing
+                          times: [0, 0.2, 0.8, 1] // Control timing of opacity
+                        }}
+                        className="absolute pointer-events-none z-10"
+                        style={{
+                          left: 0,
+                          top: anim.position.y,
+                        }}
+                      >
+                        <span className="text-red-500 font-black text-4xl drop-shadow-lg select-none">
+                          -{anim.damage}
+                        </span>
+                        {/* Damage impact effect */}
+                        <motion.div
+                          initial={{ scale: 0, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          exit={{ scale: 0, opacity: 0 }}
+                          transition={{ duration: 0.3, delay: 0.1 }}
+                          className="absolute inset-0 bg-red-500/20 rounded-full blur-sm"
+                          style={{ transform: 'scale(2)' }}
+                        />
+                      </motion.div>
+                    ))}
+                </AnimatePresence>
+
                 <div className="flex justify-between items-start mb-3">
                   <h5 className="text-md font-bold text-white">Battle #{battleId.toString()}</h5>
                   <div className="flex items-center space-x-2">
-                    {/* Critical Hit Indicator */}
-                    {lastCriticalHit && lastCriticalHit.battleId === battleId && (
-                      <span className="px-2 py-1 bg-red-600/20 border border-red-600/30 rounded text-red-400 text-xs font-medium animate-pulse">
-                        ⚡ Critical Hit! {lastCriticalHit.damage} DMG
-                      </span>
-                    )}
                     <span className={`px-2 py-1 rounded text-xs font-medium ${
                       !battle.isAccepted ? 'bg-yellow-600/20 text-yellow-400' :
                       isMyTurn ? 'bg-green-600/20 text-green-400' : 'bg-yellow-600/20 text-yellow-400'
@@ -148,7 +213,7 @@ export default function ActiveBattles({ connectedAddress }: ActiveBattlesProps) 
                     disabled={isExecutingTurnLoading(battleId)}
                     className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors disabled:opacity-50"
                   >
-                    {isExecutingTurnLoading(battleId) ? (isPending ? 'Executing...' : 'Confirming...') : 'Execute Turn'}
+                    {isExecutingTurnLoading(battleId) ? (isPending ? 'Executing...' : 'Attacking...') : 'Attack'}
                   </button>
                 )}
 

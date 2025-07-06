@@ -27,20 +27,20 @@ export default function BattleArena({ connectedAddress }: BattleArenaProps) {
   const [selectedSamurai, setSelectedSamurai] = useState<{ address: string; name: string } | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const { startBattle, isPending, isConfirming, isSuccess, error, hash } = useContract();
+  const { challengeBattle, isPending, isConfirming, isSuccess, error, hash } = useContract();
   const { minimumBet, maximumBet } = useContractRead(hash);
 
   // Handle success/error messages with useEffect
   useEffect(() => {
     if (isSuccess) {
-      toast.success('Battle started successfully!');
+      toast.success('Battle challenge sent successfully!');
       setIsStartingBattle(false);
     }
   }, [isSuccess]);
 
   useEffect(() => {
     if (error) {
-      toast.error(`Failed to start battle: ${error.message}`);
+      toast.error(`Failed to send battle challenge: ${error.message}`);
       setIsStartingBattle(false);
     }
   }, [error]);
@@ -117,7 +117,7 @@ export default function BattleArena({ connectedAddress }: BattleArenaProps) {
     toast.loading('Starting battle...');
 
     try {
-      startBattle(opponentAddress as `0x${string}`, betAmountWei);
+      challengeBattle(opponentAddress as `0x${string}`, betAmountWei);
       setOpponentAddress('');
       setBetAmount('0.01');
       setSelectedSamurai(null);
@@ -146,7 +146,7 @@ export default function BattleArena({ connectedAddress }: BattleArenaProps) {
       {/* Start New Battle Section */}
       <div className="bg-white/5 rounded-lg p-4">
         <h4 className="text-lg font-bold text-white mb-2">
-          Start New Battle
+          Challenge Player to Battle
         </h4>
         <div className="space-y-3">
           <div className="relative" ref={dropdownRef}>
@@ -211,8 +211,8 @@ export default function BattleArena({ connectedAddress }: BattleArenaProps) {
             className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition-colors disabled:opacity-50"
           >
             {isLoading
-              ? (isPending ? 'Starting Battle...' : 'Confirming...')
-              : 'Start Battle'}
+              ? (isPending ? 'Sending Challenge...' : 'Confirming...')
+              : 'Send Battle Challenge'}
           </button>
         </div>
       </div>

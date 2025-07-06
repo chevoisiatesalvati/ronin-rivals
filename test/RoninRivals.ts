@@ -65,10 +65,10 @@ describe('RoninRivals', async function () {
       account: player2.account.address,
     });
 
-    // Start a battle with minimum bet (contract has no funds initially)
+    // Challenge a battle with minimum bet
     const betAmount = 10000000000000000n; // 0.01 ether
     await viem.assertions.emitWithArgs(
-      roninRivals.write.startBattle(
+      roninRivals.write.challengeBattle(
         [checksumAddress(player2.account.address)],
         {
           account: checksumAddress(player1.account.address),
@@ -76,7 +76,7 @@ describe('RoninRivals', async function () {
         }
       ),
       roninRivals,
-      'BattleStarted',
+      'BattleChallenged',
       [
         0n,
         checksumAddress(player1.account.address),
@@ -85,13 +85,30 @@ describe('RoninRivals', async function () {
       ]
     );
 
-    // Verify battle was created
+    // Verify battle was created but not yet accepted
     const battle = await roninRivals.read.getBattle([0n]);
-    assert.equal(battle.player1, checksumAddress(player1.account.address));
-    assert.equal(battle.player2, checksumAddress(player2.account.address));
+    assert.equal(battle.challenger, checksumAddress(player1.account.address));
+    assert.equal(battle.opponent, checksumAddress(player2.account.address));
     assert.equal(battle.bet, betAmount);
-    assert.equal(battle.isActive, true);
+    assert.equal(battle.isActive, false);
+    assert.equal(battle.isAccepted, false);
     assert.equal(battle.currentTurn, checksumAddress(player1.account.address));
+
+    // Accept the battle
+    await viem.assertions.emitWithArgs(
+      roninRivals.write.acceptBattle([0n], {
+        account: checksumAddress(player2.account.address),
+        value: betAmount,
+      }),
+      roninRivals,
+      'BattleAccepted',
+      [0n, checksumAddress(player2.account.address)]
+    );
+
+    // Verify battle is now active
+    const acceptedBattle = await roninRivals.read.getBattle([0n]);
+    assert.equal(acceptedBattle.isActive, true);
+    assert.equal(acceptedBattle.isAccepted, true);
   });
 
   it('Should handle battle rewards correctly with insufficient contract funds', async function () {
@@ -108,10 +125,16 @@ describe('RoninRivals', async function () {
       account: player2.account.address,
     });
 
-    // Start a battle with minimum bet
+    // Challenge a battle with minimum bet
     const betAmount = 10000000000000000n; // 0.01 ether
-    await roninRivals.write.startBattle([player2.account.address], {
+    await roninRivals.write.challengeBattle([player2.account.address], {
       account: player1.account.address,
+      value: betAmount,
+    });
+
+    // Accept the battle
+    await roninRivals.write.acceptBattle([0n], {
+      account: player2.account.address,
       value: betAmount,
     });
 
@@ -155,10 +178,16 @@ describe('RoninRivals', async function () {
       account: player2.account.address,
     });
 
-    // Start a battle with minimum bet
+    // Challenge a battle with minimum bet
     const betAmount = 10000000000000000n; // 0.01 ether
-    await roninRivals.write.startBattle([player2.account.address], {
+    await roninRivals.write.challengeBattle([player2.account.address], {
       account: player1.account.address,
+      value: betAmount,
+    });
+
+    // Accept the battle
+    await roninRivals.write.acceptBattle([0n], {
+      account: player2.account.address,
       value: betAmount,
     });
 
@@ -204,9 +233,9 @@ describe('RoninRivals', async function () {
       account: player2.account.address,
     });
 
-    // Try to start a battle with bet below minimum
+    // Try to challenge a battle with bet below minimum
     try {
-      await roninRivals.write.startBattle([player2.account.address], {
+      await roninRivals.write.challengeBattle([player2.account.address], {
         account: player1.account.address,
         value: 1000000000000000n, // 0.001 ether (below minimum)
       });
@@ -216,9 +245,9 @@ describe('RoninRivals', async function () {
       assert.ok(error);
     }
 
-    // Try to start a battle with bet above maximum
+    // Try to challenge a battle with bet above maximum
     try {
-      await roninRivals.write.startBattle([player2.account.address], {
+      await roninRivals.write.challengeBattle([player2.account.address], {
         account: player1.account.address,
         value: 2000000000000000000n, // 2 ether (above maximum)
       });
@@ -240,9 +269,9 @@ describe('RoninRivals', async function () {
       account: player2.account.address,
     });
 
-    // Try to start a battle without player1 having a Samurai
+    // Try to challenge a battle without player1 having a Samurai
     try {
-      await roninRivals.write.startBattle([player2.account.address], {
+      await roninRivals.write.challengeBattle([player2.account.address], {
         account: player1.account.address,
         value: 10000000000000000n, // 0.01 ether
       });
@@ -264,13 +293,13 @@ describe('RoninRivals', async function () {
       account: player1.account.address,
     });
 
-    // Try to start a battle with opponent who doesn't have a Samurai
+    // Try to challenge a battle with player2 not having a Samurai
     try {
-      await roninRivals.write.startBattle([player2.account.address], {
+      await roninRivals.write.challengeBattle([player2.account.address], {
         account: player1.account.address,
         value: 10000000000000000n, // 0.01 ether
       });
-      assert.fail('Should have failed due to opponent not having a Samurai');
+      assert.fail('Should have failed due to player2 not having a Samurai');
     } catch (error) {
       // Expected to fail
       assert.ok(error);
@@ -288,13 +317,13 @@ describe('RoninRivals', async function () {
       account: player1.account.address,
     });
 
-    // Try to start a battle with yourself
+    // Try to challenge yourself to a battle
     try {
-      await roninRivals.write.startBattle([player1.account.address], {
+      await roninRivals.write.challengeBattle([player1.account.address], {
         account: player1.account.address,
         value: 10000000000000000n, // 0.01 ether
       });
-      assert.fail('Should have failed due to battling yourself');
+      assert.fail('Should have failed due to challenging yourself');
     } catch (error) {
       // Expected to fail
       assert.ok(error);

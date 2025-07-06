@@ -33,13 +33,14 @@ contract RoninRivals {
 
     /// @notice Battle structure
     struct Battle {
-        address player1;
-        address player2;
-        uint256 bet;
-        uint256 player1Health;
-        uint256 player2Health;
-        bool isActive;
-        address currentTurn;
+        address challenger;    // Player who initiated the challenge
+        address opponent;      // Player who was challenged
+        uint256 bet;          // Bet amount (both players pay this)
+        uint256 challengerHealth;
+        uint256 opponentHealth;
+        bool isActive;        // True when battle is ongoing
+        bool isAccepted;      // True when opponent accepted the challenge
+        address currentTurn;  // Whose turn it is
         uint256 turnCount;
     }
 
@@ -57,7 +58,8 @@ contract RoninRivals {
 
     /// @notice Events
     event SamuraiCreated(address indexed player, string name);
-    event BattleStarted(uint256 indexed battleId, address player1, address player2, uint256 bet);
+    event BattleChallenged(uint256 indexed battleId, address challenger, address opponent, uint256 bet);
+    event BattleAccepted(uint256 indexed battleId, address opponent);
     event BattleTurn(uint256 indexed battleId, address player, uint256 damage, uint256 remainingHealth);
     event CriticalHit(uint256 indexed battleId, address player, uint256 damage);
     event BattleEnded(uint256 indexed battleId, address winner, address loser, uint256 reward);
@@ -128,27 +130,43 @@ contract RoninRivals {
         }
     }
 
-    /// @notice Starts a battle with another player
+    /// @notice Challenges another player to a battle
     /// @param _opponent The address of the opponent
-    function startBattle(address _opponent) public payable hasSamurai {
-        require(_opponent != msg.sender, "Cannot battle yourself");
+    function challengeBattle(address _opponent) public payable hasSamurai {
+        require(_opponent != msg.sender, "Cannot challenge yourself");
         require(samurais[_opponent].exists, "Opponent must have a Samurai");
         require(msg.value >= MINIMUM_BET && msg.value <= MAXIMUM_BET, "Invalid bet amount");
         
         uint256 battleId = battleIdCounter++;
         
         battles[battleId] = Battle({
-            player1: msg.sender,
-            player2: _opponent,
+            challenger: msg.sender,
+            opponent: _opponent,
             bet: msg.value,
-            player1Health: samurais[msg.sender].health,
-            player2Health: samurais[_opponent].health,
-            isActive: true,
-            currentTurn: msg.sender, // Player1 starts
+            challengerHealth: samurais[msg.sender].health,
+            opponentHealth: samurais[_opponent].health,
+            isActive: false, // Battle not active until accepted
+            isAccepted: false, // Challenge not yet accepted
+            currentTurn: msg.sender, // Challenger starts
             turnCount: 0
         });
         
-        emit BattleStarted(battleId, msg.sender, _opponent, msg.value);
+        emit BattleChallenged(battleId, msg.sender, _opponent, msg.value);
+    }
+
+    /// @notice Accepts a battle challenge
+    /// @param _battleId The ID of the battle to accept
+    function acceptBattle(uint256 _battleId) public payable {
+        Battle storage battle = battles[_battleId];
+        require(msg.sender == battle.opponent, "Only the challenged player can accept");
+        require(!battle.isAccepted, "Battle already accepted");
+        require(!battle.isActive, "Battle already active");
+        require(msg.value == battle.bet, "Must pay the same bet amount");
+        
+        battle.isAccepted = true;
+        battle.isActive = true;
+        
+        emit BattleAccepted(_battleId, msg.sender);
     }
 
     /// @notice Executes a turn in an active battle
@@ -156,25 +174,26 @@ contract RoninRivals {
     function executeTurn(uint256 _battleId) public {
         Battle storage battle = battles[_battleId];
         require(battle.isActive, "Battle is not active");
+        require(battle.isAccepted, "Battle must be accepted first");
         require(msg.sender == battle.currentTurn, "Not your turn");
         
         address attacker = msg.sender;
-        address defender = (attacker == battle.player1) ? battle.player2 : battle.player1;
+        address defender = (attacker == battle.challenger) ? battle.opponent : battle.challenger;
         
         // Calculate damage
         (uint256 damage, bool isCriticalHit) = calculateDamage(attacker, defender);
         
         // Apply damage
-        if (attacker == battle.player1) {
-            battle.player2Health = (battle.player2Health > damage) ? battle.player2Health - damage : 0;
+        if (attacker == battle.challenger) {
+            battle.opponentHealth = (battle.opponentHealth > damage) ? battle.opponentHealth - damage : 0;
         } else {
-            battle.player1Health = (battle.player1Health > damage) ? battle.player1Health - damage : 0;
+            battle.challengerHealth = (battle.challengerHealth > damage) ? battle.challengerHealth - damage : 0;
         }
         
         battle.turnCount++;
         
         emit BattleTurn(_battleId, attacker, damage, 
-            (attacker == battle.player1) ? battle.player2Health : battle.player1Health);
+            (attacker == battle.challenger) ? battle.opponentHealth : battle.challengerHealth);
         
         // Emit critical hit event if it occurred
         if (isCriticalHit) {
@@ -182,11 +201,11 @@ contract RoninRivals {
         }
         
         // Check if battle is over
-        if (battle.player1Health == 0 || battle.player2Health == 0) {
+        if (battle.challengerHealth == 0 || battle.opponentHealth == 0) {
             endBattle(_battleId);
         } else {
             // Switch turns
-            battle.currentTurn = (battle.currentTurn == battle.player1) ? battle.player2 : battle.player1;
+            battle.currentTurn = (battle.currentTurn == battle.challenger) ? battle.opponent : battle.challenger;
         }
     }
 
@@ -221,8 +240,8 @@ contract RoninRivals {
     /// @param _battleId The ID of the battle
     function endBattle(uint256 _battleId) internal {
         Battle storage battle = battles[_battleId];
-        address winner = (battle.player1Health > 0) ? battle.player1 : battle.player2;
-        address loser = (winner == battle.player1) ? battle.player2 : battle.player1;
+        address winner = (battle.challengerHealth > 0) ? battle.challenger : battle.opponent;
+        address loser = (winner == battle.challenger) ? battle.opponent : battle.challenger;
         
         // Update battle stats
         samurais[winner].battlesWon++;

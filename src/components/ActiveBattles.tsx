@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { formatEther } from 'viem';
+import { toast } from 'react-hot-toast';
 import { useContract, useActiveBattles } from '@/lib/contract';
-import toast from 'react-hot-toast';
+import { Battle } from '@/types/game';
 
 interface ActiveBattlesProps {
   connectedAddress: string | null;
@@ -15,13 +16,13 @@ export default function ActiveBattles({ connectedAddress }: ActiveBattlesProps) 
   const [executingBattleId, setExecutingBattleId] = useState<bigint | null>(null);
   const [lastCriticalHit, setLastCriticalHit] = useState<{ battleId: bigint; damage: string } | null>(null);
 
-  const { executeTurn, isPending, isConfirming, isSuccess, error, hash } = useContract();
+  const { executeTurn, acceptBattle, isPending, isConfirming, isSuccess, error, hash } = useContract();
   const { activeBattles, isLoading: battlesLoading } = useActiveBattles(hash);
 
   // Handle success/error messages with useEffect
   useEffect(() => {
     if (isSuccess) {
-      toast.success('Turn executed successfully!');
+      toast.success('Action completed successfully!');
       setExecutingBattleId(null);
       // Clear critical hit display after a few seconds
       setTimeout(() => setLastCriticalHit(null), 3000);
@@ -30,7 +31,7 @@ export default function ActiveBattles({ connectedAddress }: ActiveBattlesProps) 
 
   useEffect(() => {
     if (error) {
-      toast.error(`Failed to execute turn: ${error.message}`);
+      toast.error(`Action failed: ${error.message}`);
       setExecutingBattleId(null);
     }
   }, [error]);
@@ -51,6 +52,17 @@ export default function ActiveBattles({ connectedAddress }: ActiveBattlesProps) 
     }
   };
 
+  const handleAcceptBattle = async (battleId: bigint, betAmount: bigint) => {
+    setExecutingBattleId(battleId);
+    try {
+      await acceptBattle(battleId, betAmount);
+    } catch (error) {
+      console.error('Accept battle error:', error);
+      toast.error('Failed to accept battle');
+      setExecutingBattleId(null);
+    }
+  };
+
   const isExecutingTurnLoading = (battleId: bigint) => 
     executingBattleId === battleId || (isPending && executingBattleId === battleId) || (isConfirming && executingBattleId === battleId);
 
@@ -67,11 +79,11 @@ export default function ActiveBattles({ connectedAddress }: ActiveBattlesProps) 
             if (!battle) return null;
             
             const isMyTurn = battle.currentTurn === address;
-            const isPlayer1 = battle.player1 === address;
-            const isPlayer2 = battle.player2 === address;
-            const myHealth = isPlayer1 ? battle.player1Health : battle.player2Health;
-            const opponentHealth = isPlayer1 ? battle.player2Health : battle.player1Health;
-            const opponentAddress = isPlayer1 ? battle.player2 : battle.player1;
+            const isChallenger = battle.challenger === address;
+            const isOpponent = battle.opponent === address;
+            const myHealth = isChallenger ? battle.challengerHealth : battle.opponentHealth;
+            const opponentHealth = isChallenger ? battle.opponentHealth : battle.challengerHealth;
+            const opponentAddress = isChallenger ? battle.opponent : battle.challenger;
 
             return (
               <div key={battleId.toString()} className="bg-white/5 rounded-lg p-4 border border-white/10">
@@ -85,9 +97,11 @@ export default function ActiveBattles({ connectedAddress }: ActiveBattlesProps) 
                       </span>
                     )}
                     <span className={`px-2 py-1 rounded text-xs font-medium ${
+                      !battle.isAccepted ? 'bg-yellow-600/20 text-yellow-400' :
                       isMyTurn ? 'bg-green-600/20 text-green-400' : 'bg-yellow-600/20 text-yellow-400'
                     }`}>
-                      {isMyTurn ? 'Your Turn' : "Opponent's Turn"}
+                      {!battle.isAccepted ? 'Pending Acceptance' :
+                       isMyTurn ? 'Your Turn' : "Opponent's Turn"}
                     </span>
                   </div>
                 </div>
@@ -113,12 +127,22 @@ export default function ActiveBattles({ connectedAddress }: ActiveBattlesProps) 
                   <div className="grid grid-cols-3 gap-2 text-xs text-white/80">
                     <p>Turn Count: {battle.turnCount.toString()}</p>
                     <p>Bet: {formatEther(battle.bet)} RON</p>
-                    <p>Role: {isPlayer1 ? 'Player 1' : 'Player 2'}</p>
+                    <p>Role: {isChallenger ? 'Challenger' : 'Opponent'}</p>
                   </div>
                 </div>
 
-                {/* Action Button */}
-                {isMyTurn && (
+                {/* Action Buttons */}
+                {!battle.isAccepted && isOpponent && (
+                  <button
+                    onClick={() => handleAcceptBattle(battleId, battle.bet)}
+                    disabled={isExecutingTurnLoading(battleId)}
+                    className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition-colors disabled:opacity-50"
+                  >
+                    {isExecutingTurnLoading(battleId) ? (isPending ? 'Accepting...' : 'Confirming...') : `Accept Battle (${formatEther(battle.bet)} RON)`}
+                  </button>
+                )}
+
+                {battle.isAccepted && isMyTurn && (
                   <button
                     onClick={() => handleExecuteTurn(battleId)}
                     disabled={isExecutingTurnLoading(battleId)}
@@ -128,8 +152,16 @@ export default function ActiveBattles({ connectedAddress }: ActiveBattlesProps) 
                   </button>
                 )}
 
-                {/* Waiting Message */}
-                {!isMyTurn && (
+                {/* Waiting Messages */}
+                {!battle.isAccepted && isChallenger && (
+                  <div className="text-center">
+                    <p className="text-yellow-400 text-sm">
+                      Waiting for opponent to accept challenge...
+                    </p>
+                  </div>
+                )}
+
+                {battle.isAccepted && !isMyTurn && (
                   <div className="text-center">
                     <p className="text-yellow-400 text-sm">
                       Waiting for opponent's turn...

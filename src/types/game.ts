@@ -13,12 +13,13 @@ export interface Samurai {
 }
 
 export interface Battle {
-  player1: `0x${string}`;
-  player2: `0x${string}`;
+  challenger: `0x${string}`;
+  opponent: `0x${string}`;
   bet: bigint;
-  player1Health: bigint;
-  player2Health: bigint;
+  challengerHealth: bigint;
+  opponentHealth: bigint;
   isActive: boolean;
+  isAccepted: boolean;
   currentTurn: `0x${string}`;
   turnCount: bigint;
 }

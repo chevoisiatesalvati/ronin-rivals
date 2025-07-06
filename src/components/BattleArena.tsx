@@ -28,10 +28,10 @@ export default function BattleArena({ connectedAddress }: BattleArenaProps) {
   const [selectedSamurai, setSelectedSamurai] = useState<{ address: string; name: string } | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const { startBattle, executeTurn, isPending, isSuccess, error } =
+  const { startBattle, executeTurn, isPending, isConfirming, isSuccess, error, hash } =
     useContract();
   const { currentBattle, battleIdCounter, minimumBet, maximumBet } =
-    useContractRead();
+    useContractRead(hash);
 
   // Handle success/error messages with useEffect
   useEffect(() => {
@@ -153,6 +153,9 @@ export default function BattleArena({ connectedAddress }: BattleArenaProps) {
   const isPlayer1 = currentBattle && currentBattle.player1 === address;
   const isPlayer2 = currentBattle && currentBattle.player2 === address;
 
+  // Use isConfirming for the loading state (transaction being mined)
+  const isLoading = isPending || isConfirming;
+
   return (
     <div className="bg-white/10 backdrop-blur-md rounded-lg p-6">
       <h2 className="text-2xl font-bold text-white mb-4">⚔️ Battle Arena</h2>
@@ -223,11 +226,11 @@ export default function BattleArena({ connectedAddress }: BattleArenaProps) {
             <button
               onClick={handleStartBattle}
               disabled={
-                isPending || isStartingBattle || !opponentAddress.trim()
+                isLoading || !opponentAddress.trim()
               }
               className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition-colors disabled:opacity-50"
             >
-              {isPending || isStartingBattle
+              {isLoading
                 ? 'Starting Battle...'
                 : 'Start Battle'}
             </button>
@@ -277,10 +280,10 @@ export default function BattleArena({ connectedAddress }: BattleArenaProps) {
               {isMyTurn && (
                 <button
                   onClick={handleExecuteTurn}
-                  disabled={isPending}
+                  disabled={isLoading}
                   className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-colors disabled:opacity-50"
                 >
-                  {isPending ? 'Executing...' : 'Execute Turn'}
+                  {isLoading ? 'Executing...' : 'Execute Turn'}
                 </button>
               )}
 

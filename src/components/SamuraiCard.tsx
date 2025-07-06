@@ -7,9 +7,9 @@ import toast from 'react-hot-toast';
 export default function SamuraiCard() {
   const [samuraiName, setSamuraiName] = useState('');
 
-  const { createSamurai, upgradeStat, isPending, isSuccess, error } =
+  const { createSamurai, upgradeStat, isPending, isConfirming, isSuccess, error, hash } =
     useContract();
-  const { samurai } = useContractRead();
+  const { samurai } = useContractRead(hash);
 
   // Handle success/error messages with useEffect
   useEffect(() => {
@@ -48,6 +48,9 @@ export default function SamuraiCard() {
     }
   };
 
+  // Use isConfirming for the loading state (transaction being mined)
+  const isLoading = isPending || isConfirming;
+
   return (
     <div className="bg-white/10 backdrop-blur-md rounded-lg p-6">
       <h2 className="text-2xl font-bold text-white mb-4">🗡️ Your Samurai</h2>
@@ -66,10 +69,10 @@ export default function SamuraiCard() {
           />
           <button
             onClick={handleCreateSamurai}
-            disabled={isPending || !samuraiName.trim()}
+            disabled={isLoading || !samuraiName.trim()}
             className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition-colors disabled:opacity-50"
           >
-            {isPending ? 'Creating...' : 'Create Samurai'}
+            {isLoading ? 'Creating...' : 'Create Samurai'}
           </button>
         </div>
       ) : (
@@ -90,16 +93,28 @@ export default function SamuraiCard() {
           <div className="bg-white/5 rounded-lg p-4">
             <h4 className="text-lg font-bold text-white mb-2">Stats</h4>
             <div className="space-y-2">
+            <div className="flex justify-between items-center">
+                <span className="text-white/80">
+                  Health: {samurai.health.toString()}
+                </span>
+                <button
+                  onClick={() => handleUpgradeStat(3)}
+                  disabled={isLoading || samurai.skillPoints === 0n}
+                  className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm disabled:opacity-50"
+                >
+                  +10
+                </button>
+              </div>
               <div className="flex justify-between items-center">
                 <span className="text-white/80">
                   Strength: {samurai.strength.toString()}
                 </span>
                 <button
                   onClick={() => handleUpgradeStat(0)}
-                  disabled={isPending || samurai.skillPoints === 0n}
+                  disabled={isLoading || samurai.skillPoints === 0n}
                   className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm disabled:opacity-50"
                 >
-                  +2
+                  +1
                 </button>
               </div>
               <div className="flex justify-between items-center">
@@ -108,7 +123,7 @@ export default function SamuraiCard() {
                 </span>
                 <button
                   onClick={() => handleUpgradeStat(1)}
-                  disabled={isPending || samurai.skillPoints === 0n}
+                  disabled={isLoading || samurai.skillPoints === 0n}
                   className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm disabled:opacity-50"
                 >
                   +1
@@ -120,24 +135,13 @@ export default function SamuraiCard() {
                 </span>
                 <button
                   onClick={() => handleUpgradeStat(2)}
-                  disabled={isPending || samurai.skillPoints === 0n}
+                  disabled={isLoading || samurai.skillPoints === 0n}
                   className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm disabled:opacity-50"
                 >
                   +1
                 </button>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-white/80">
-                  Health: {samurai.health.toString()}
-                </span>
-                <button
-                  onClick={() => handleUpgradeStat(3)}
-                  disabled={isPending || samurai.skillPoints === 0n}
-                  className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm disabled:opacity-50"
-                >
-                  +10
-                </button>
-              </div>
+
             </div>
           </div>
         </div>

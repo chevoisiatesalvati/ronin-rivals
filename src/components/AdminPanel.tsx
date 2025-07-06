@@ -10,8 +10,8 @@ export default function AdminPanel() {
   const { address } = useAccount();
   const [fundAmount, setFundAmount] = useState('0.1');
 
-  const { fundContract, isPending, isSuccess, error } = useContract();
-  const { contractBalance, owner } = useContractRead();
+  const { fundContract, isPending, isConfirming, isSuccess, error, hash } = useContract();
+  const { contractBalance, owner } = useContractRead(hash);
 
   // Handle success/error messages with useEffect
   useEffect(() => {
@@ -26,6 +26,9 @@ export default function AdminPanel() {
       toast.error(`Transaction failed: ${error.message}`);
     }
   }, [error]);
+
+  // Use isConfirming for the loading state (transaction being mined)
+  const isLoading = isPending || isConfirming;
 
   const handleFundContract = async () => {
     if (!address) {
@@ -92,10 +95,10 @@ export default function AdminPanel() {
               </div>
               <button
                 onClick={handleFundContract}
-                disabled={isPending || parseFloat(fundAmount) <= 0}
+                disabled={isLoading || parseFloat(fundAmount) <= 0}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors disabled:opacity-50"
               >
-                {isPending ? 'Funding...' : 'Fund Contract'}
+                {isLoading ? 'Funding...' : 'Fund Contract'}
               </button>
             </div>
           </div>

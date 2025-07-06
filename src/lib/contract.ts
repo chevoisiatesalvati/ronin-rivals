@@ -97,7 +97,7 @@ export const useContract = () => {
 };
 
 // Hook for reading contract data
-export const useContractRead = () => {
+export const useContractRead = (transactionHash?: `0x${string}`) => {
   const { address } = useAccount();
 
   const { data: samurai } = useReadContract({
@@ -107,9 +107,10 @@ export const useContractRead = () => {
     args: address ? [address] : undefined,
     query: {
       enabled: !!address,
+      refetchInterval: transactionHash ? 1000 : false, // Refetch every 1 second when transaction is pending
+      refetchIntervalInBackground: false,
     },
   }) as { data: Samurai | undefined };
-
 
   const { data: battleIdCounter } = useReadContract({
     address: CONTRACT_ADDRESS,
@@ -117,6 +118,8 @@ export const useContractRead = () => {
     functionName: 'battleIdCounter',
     query: {
       enabled: true,
+      refetchInterval: transactionHash ? 1000 : false,
+      refetchIntervalInBackground: false,
     },
   }) as { data: bigint | undefined };
 
@@ -148,6 +151,8 @@ export const useContractRead = () => {
         : undefined,
     query: {
       enabled: !!battleIdCounter && battleIdCounter > 0n,
+      refetchInterval: transactionHash ? 1000 : false,
+      refetchIntervalInBackground: false,
     },
   }) as { data: Battle | undefined };
 
@@ -157,6 +162,8 @@ export const useContractRead = () => {
     functionName: 'balance',
     query: {
       enabled: true,
+      refetchInterval: transactionHash ? 1000 : false,
+      refetchIntervalInBackground: false,
     },
   }) as { data: bigint | undefined };
 

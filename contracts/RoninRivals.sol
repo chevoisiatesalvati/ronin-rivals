@@ -59,6 +59,7 @@ contract RoninRivals {
     event SamuraiCreated(address indexed player, string name);
     event BattleStarted(uint256 indexed battleId, address player1, address player2, uint256 bet);
     event BattleTurn(uint256 indexed battleId, address player, uint256 damage, uint256 remainingHealth);
+    event CriticalHit(uint256 indexed battleId, address player, uint256 damage);
     event BattleEnded(uint256 indexed battleId, address winner, address loser, uint256 reward);
     event SkillUpgraded(address indexed player, string stat, uint256 newValue);
     event ContractFunded(address indexed funder, uint256 amount);
@@ -161,7 +162,7 @@ contract RoninRivals {
         address defender = (attacker == battle.player1) ? battle.player2 : battle.player1;
         
         // Calculate damage
-        uint256 damage = calculateDamage(attacker, defender);
+        (uint256 damage, bool isCriticalHit) = calculateDamage(attacker, defender);
         
         // Apply damage
         if (attacker == battle.player1) {
@@ -174,6 +175,11 @@ contract RoninRivals {
         
         emit BattleTurn(_battleId, attacker, damage, 
             (attacker == battle.player1) ? battle.player2Health : battle.player1Health);
+        
+        // Emit critical hit event if it occurred
+        if (isCriticalHit) {
+            emit CriticalHit(_battleId, attacker, damage);
+        }
         
         // Check if battle is over
         if (battle.player1Health == 0 || battle.player2Health == 0) {
@@ -188,21 +194,27 @@ contract RoninRivals {
     /// @param _attacker The attacking player
     /// @param _defender The defending player
     /// @return The damage dealt
-    function calculateDamage(address _attacker, address _defender) internal view returns (uint256) {
+    /// @return Whether a critical hit occurred
+    function calculateDamage(address _attacker, address _defender) internal view returns (uint256, bool) {
         Samurai storage attackerSamurai = samurais[_attacker];
         Samurai storage defenderSamurai = samurais[_defender];
         
-        uint256 baseDamage = attackerSamurai.strength;
-        uint256 defense = defenderSamurai.defense;
+        // Calculate base damage
+        uint256 damage = (attackerSamurai.strength > defenderSamurai.defense / 2) ? 
+            attackerSamurai.strength - (defenderSamurai.defense / 2) : 1;
         
-        // Simple damage formula: base damage - defense (minimum 1)
-        uint256 damage = (baseDamage > defense) ? baseDamage - defense : 1;
+        // Add randomness (0-20% bonus)
+        damage = damage + (damage * (uint256(keccak256(abi.encodePacked(block.timestamp, _attacker))) % 21)) / 100;
         
-        // Add some randomness (0-20% bonus)
-        uint256 randomBonus = uint256(keccak256(abi.encodePacked(block.timestamp, _attacker))) % 21;
-        damage = damage + (damage * randomBonus / 100);
+        // Check for critical hit
+        bool isCriticalHit = (uint256(keccak256(abi.encodePacked(block.timestamp, _attacker, "critical"))) % 100) < (attackerSamurai.speed * 2);
         
-        return damage;
+        if (isCriticalHit) {
+            // Critical hit: 150% damage + extra randomness (0-50%)
+            damage = (damage * 150) / 100 + (damage * (uint256(keccak256(abi.encodePacked(block.timestamp, _attacker, "crit_bonus"))) % 51)) / 100;
+        }
+        
+        return (damage, isCriticalHit);
     }
 
     /// @notice Ends a battle and distributes rewards

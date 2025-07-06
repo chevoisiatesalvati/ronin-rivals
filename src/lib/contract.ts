@@ -5,7 +5,7 @@ import {
   useWaitForTransactionReceipt,
 } from 'wagmi';
 import { useAccount } from 'wagmi';
-import { Samurai, Battle } from '@/types/game';
+import { Samurai, Battle, ActiveBattle } from '@/types/game';
 import { CONTRACT_ADDRESS } from './config';
 
 // Import the generated ABI from Hardhat compilation
@@ -184,5 +184,168 @@ export const useContractRead = (transactionHash?: `0x${string}`) => {
     maximumBet: maximumBet ? formatEther(maximumBet) : '0',
     contractBalance: contractBalance ? formatEther(contractBalance) : '0',
     owner,
+  };
+};
+
+// Helper function to get all active battles for a player
+export const useActiveBattles = (transactionHash?: `0x${string}`) => {
+  const { address } = useAccount();
+  const { battleIdCounter } = useContractRead(transactionHash);
+  
+  // Create an array of battle IDs to fetch - use a fixed maximum to avoid conditional hooks
+  const maxBattles = 10; // Reasonable maximum for active battles
+  const battleIds: bigint[] = [];
+  
+  if (battleIdCounter && battleIdCounter > 0n) {
+    const startIndex = Math.max(0, Number(battleIdCounter) - maxBattles);
+    for (let i = startIndex; i < Number(battleIdCounter); i++) {
+      battleIds.push(BigInt(i));
+    }
+  }
+
+  // Always create the same number of hooks to maintain consistent order
+  const battle0 = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    functionName: 'getBattle',
+    args: battleIds[0] !== undefined ? [battleIds[0]] : undefined,
+    query: {
+      enabled: !!address && battleIds.length > 0 && battleIds[0] !== undefined,
+      refetchInterval: transactionHash ? 1000 : false,
+      refetchIntervalInBackground: false,
+    },
+  });
+
+  const battle1 = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    functionName: 'getBattle',
+    args: battleIds[1] !== undefined ? [battleIds[1]] : undefined,
+    query: {
+      enabled: !!address && battleIds.length > 1 && battleIds[1] !== undefined,
+      refetchInterval: transactionHash ? 1000 : false,
+      refetchIntervalInBackground: false,
+    },
+  });
+
+  const battle2 = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    functionName: 'getBattle',
+    args: battleIds[2] !== undefined ? [battleIds[2]] : undefined,
+    query: {
+      enabled: !!address && battleIds.length > 2 && battleIds[2] !== undefined,
+      refetchInterval: transactionHash ? 1000 : false,
+      refetchIntervalInBackground: false,
+    },
+  });
+
+  const battle3 = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    functionName: 'getBattle',
+    args: battleIds[3] !== undefined ? [battleIds[3]] : undefined,
+    query: {
+      enabled: !!address && battleIds.length > 3 && battleIds[3] !== undefined,
+      refetchInterval: transactionHash ? 1000 : false,
+      refetchIntervalInBackground: false,
+    },
+  });
+
+  const battle4 = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    functionName: 'getBattle',
+    args: battleIds[4] !== undefined ? [battleIds[4]] : undefined,
+    query: {
+      enabled: !!address && battleIds.length > 4 && battleIds[4] !== undefined,
+      refetchInterval: transactionHash ? 1000 : false,
+      refetchIntervalInBackground: false,
+    },
+  });
+
+  const battle5 = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    functionName: 'getBattle',
+    args: battleIds[5] !== undefined ? [battleIds[5]] : undefined,
+    query: {
+      enabled: !!address && battleIds.length > 5 && battleIds[5] !== undefined,
+      refetchInterval: transactionHash ? 1000 : false,
+      refetchIntervalInBackground: false,
+    },
+  });
+
+  const battle6 = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    functionName: 'getBattle',
+    args: battleIds[6] !== undefined ? [battleIds[6]] : undefined,
+    query: {
+      enabled: !!address && battleIds.length > 6 && battleIds[6] !== undefined,
+      refetchInterval: transactionHash ? 1000 : false,
+      refetchIntervalInBackground: false,
+    },
+  });
+
+  const battle7 = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    functionName: 'getBattle',
+    args: battleIds[7] !== undefined ? [battleIds[7]] : undefined,
+    query: {
+      enabled: !!address && battleIds.length > 7 && battleIds[7] !== undefined,
+      refetchInterval: transactionHash ? 1000 : false,
+      refetchIntervalInBackground: false,
+    },
+  });
+
+  const battle8 = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    functionName: 'getBattle',
+    args: battleIds[8] !== undefined ? [battleIds[8]] : undefined,
+    query: {
+      enabled: !!address && battleIds.length > 8 && battleIds[8] !== undefined,
+      refetchInterval: transactionHash ? 1000 : false,
+      refetchIntervalInBackground: false,
+    },
+  });
+
+  const battle9 = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    functionName: 'getBattle',
+    args: battleIds[9] !== undefined ? [battleIds[9]] : undefined,
+    query: {
+      enabled: !!address && battleIds.length > 9 && battleIds[9] !== undefined,
+      refetchInterval: transactionHash ? 1000 : false,
+      refetchIntervalInBackground: false,
+    },
+  });
+
+  // Combine all battle queries
+  const battleQueries = [battle0, battle1, battle2, battle3, battle4, battle5, battle6, battle7, battle8, battle9];
+
+  // Filter active battles where the current player is involved
+  const activeBattles = battleQueries
+    .map((query, index) => ({
+      battleId: battleIds[index],
+      battle: query.data as Battle | undefined,
+      isLoading: query.isLoading,
+      error: query.error,
+    }))
+    .filter(({ battleId, battle }) => 
+      battleId !== undefined &&
+      battle?.isActive && 
+      address && 
+      (battle.player1.toLowerCase() === address.toLowerCase() || 
+       battle.player2.toLowerCase() === address.toLowerCase())
+    );
+
+  return {
+    activeBattles,
+    isLoading: battleQueries.some(query => query.isLoading),
+    error: battleQueries.find(query => query.error)?.error,
   };
 };

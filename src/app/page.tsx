@@ -3,7 +3,7 @@
 import { useAccount } from 'wagmi';
 import TantoConnect from '@/components/TantoConnect';
 import SamuraiCard from '@/components/SamuraiCard';
-import BattleArena from '@/components/BattleArena';
+import BattleTabs from '@/components/BattleTabs';
 
 export default function Home() {
   const { address, isConnected } = useAccount();
@@ -19,7 +19,7 @@ export default function Home() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <SamuraiCard />
-          <BattleArena connectedAddress={address || null} />
+          <BattleTabs connectedAddress={address || null} />
         </div>
       </div>
     </div>

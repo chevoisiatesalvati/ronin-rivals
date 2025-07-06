@@ -93,18 +93,6 @@ export default function SamuraiCard() {
           <div className="bg-white/5 rounded-lg p-4">
             <h4 className="text-lg font-bold text-white mb-2">Stats</h4>
             <div className="space-y-2">
-            <div className="flex justify-between items-center">
-                <span className="text-white/80">
-                  Health: {samurai.health.toString()}
-                </span>
-                <button
-                  onClick={() => handleUpgradeStat(3)}
-                  disabled={isLoading || samurai.skillPoints === 0n}
-                  className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm disabled:opacity-50"
-                >
-                  +10
-                </button>
-              </div>
               <div className="flex justify-between items-center">
                 <span className="text-white/80">
                   Strength: {samurai.strength.toString()}
@@ -114,7 +102,7 @@ export default function SamuraiCard() {
                   disabled={isLoading || samurai.skillPoints === 0n}
                   className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm disabled:opacity-50"
                 >
-                  +1
+                  +2
                 </button>
               </div>
               <div className="flex justify-between items-center">
@@ -141,7 +129,18 @@ export default function SamuraiCard() {
                   +1
                 </button>
               </div>
-
+              <div className="flex justify-between items-center">
+                <span className="text-white/80">
+                  Health: {samurai.health.toString()}
+                </span>
+                <button
+                  onClick={() => handleUpgradeStat(3)}
+                  disabled={isLoading || samurai.skillPoints === 0n}
+                  className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm disabled:opacity-50"
+                >
+                  +10
+                </button>
+              </div>
             </div>
           </div>
         </div>

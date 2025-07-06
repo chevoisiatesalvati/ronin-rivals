@@ -22,3 +22,10 @@ export interface Battle {
   currentTurn: `0x${string}`;
   turnCount: bigint;
 }
+
+export interface ActiveBattle {
+  battleId: bigint;
+  battle: Battle;
+  isLoading?: boolean;
+  error?: Error;
+}

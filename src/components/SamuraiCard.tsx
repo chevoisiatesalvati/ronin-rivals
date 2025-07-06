@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useContract, useContractRead } from '@/lib/contract';
 import toast from 'react-hot-toast';
+import SamuraiCharacter from './SamuraiCharacter';
 
 export default function SamuraiCard() {
   const [samuraiName, setSamuraiName] = useState('');
@@ -158,27 +159,45 @@ export default function SamuraiCard() {
       ) : (
         <div className="space-y-4">
           <div className="bg-white/5 rounded-lg p-4">
-            <h3 className="text-xl font-bold text-white mb-2">
+            <h3 className="text-xl font-bold text-white mb-4 text-center">
               {samurai.name}
             </h3>
-            <div className="grid grid-cols-2 gap-2 text-sm text-white/80 mb-3">
-              <p>Level: {samurai.level.toString()}</p>
-              <p>Skill Points: {samurai.skillPoints.toString()}</p>
-              <p>Battles Won: {samurai.battlesWon.toString()}</p>
-              <p>Battles Lost: {samurai.battlesLost.toString()}</p>
-            </div>
             
-            {/* Experience Progress */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm text-white/80">
-                <span>Experience: {samurai.experience.toString()}</span>
-                <span>{samurai.experience.toString()}/100 XP to next level</span>
+            {/* Samurai Character and Stats Layout */}
+            <div className="flex items-start gap-8">
+              {/* Samurai Character */}
+              <div className="flex-shrink-0 w-38 h-38 flex items-center justify-center">
+                <SamuraiCharacter
+                  level={samurai.level}
+                  strength={samurai.strength}
+                  defense={samurai.defense}
+                  speed={samurai.speed}
+                  health={samurai.health}
+                />
               </div>
-              <div className="w-full bg-white/20 rounded-full h-2">
-                <div 
-                  className="bg-red-500 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${Math.min((Number(samurai.experience) / 100) * 100, 100)}%` }}
-                ></div>
+              
+              {/* Stats */}
+              <div className="flex-1 space-y-3">
+                <div className="grid grid-cols-2 gap-2 text-sm text-white/80">
+                  <p>Level: {samurai.level.toString()}</p>
+                  <p>Skill Points: {samurai.skillPoints.toString()}</p>
+                  <p>Battles Won: {samurai.battlesWon.toString()}</p>
+                  <p>Battles Lost: {samurai.battlesLost.toString()}</p>
+                </div>
+                
+                {/* Experience Progress */}
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm text-white/80">
+                    <span>Experience: {samurai.experience.toString()}</span>
+                    <span>{samurai.experience.toString()}/100 XP to next level</span>
+                  </div>
+                  <div className="w-full bg-white/20 rounded-full h-2">
+                    <div 
+                      className="bg-red-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${Math.min((Number(samurai.experience) / 100) * 100, 100)}%` }}
+                    ></div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
